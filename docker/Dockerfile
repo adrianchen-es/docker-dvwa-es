@@ -1,64 +1,64 @@
 ARG VERSION
-FROM php:${VERSION}-apache as builder
+ARG TARGETARCH
+ARG TARGETPLATFORM
+FROM --platform=${TARGETPLATFORM:-linux/amd64} php:${VERSION}-apache as builder
 
 # Install requirements
 RUN set -eux \
-	&& apt-get update \
-	&& apt-get install -y --no-install-recommends --no-install-suggests \
-		git \
-		ca-certificates \
-	&& update-ca-certificates
+        && apt-get update \
+        && apt-get install -y --no-install-recommends --no-install-suggests \
+                git \
+                ca-certificates \
+        && update-ca-certificates
 
 # Get DVWA
 RUN set -eux \
-	&& git clone https://github.com/digininja/DVWA /DVWA \
-	&& rm -rf /DVWA/.git \
-	&& rm -rf /DVWA/.github \
-	&& rm -rf /DVWA/.gitignore \
-	&& rm -rf /DVWA/php.ini
+        && git clone https://github.com/digininja/DVWA /DVWA \
+        && rm -rf /DVWA/.git \
+        && rm -rf /DVWA/.github \
+        && rm -rf /DVWA/.gitignore \
+        && rm -rf /DVWA/php.ini
 
 # Disable SQLITE
 RUN set -eux \
-	&& sed -i'' "s/if (\$_DVWA\['SQLI_DB'\]/if ('no'/g" /DVWA/dvwa/includes/dvwaPage.inc.php \
-	&& sed -i'' 's/[[:space:]]SQLITE)/"SQLITE")/g' /DVWA/dvwa/includes/dvwaPage.inc.php
+        && sed -i'' "s/if (\$_DVWA\['SQLI_DB'\]/if ('no'/g" /DVWA/dvwa/includes/dvwaPage.inc.php \
+        && sed -i'' 's/[[:space:]]SQLITE)/"SQLITE")/g' /DVWA/dvwa/includes/dvwaPage.inc.php
 
 # Get Adminer
 RUN set -eux \
-	&& URL="$( \
-		curl -sS --fail -k https://www.adminer.org/ \
-		| grep -Eo 'https://github.com/vrana/adminer/releases/download/v[.0-9]+/adminer-[.0-9]+-mysql-en.php' \
-	)" \
-	&& curl -sS --fail -k -L "${URL}" > /adminer.php
+        && URL="$( \
+                curl -sS --fail -k https://www.adminer.org/ \
+                | grep -Eo 'https://github.com/vrana/adminer/releases/download/v[.0-9]+/adminer-[.0-9]+-mysql-en.php' \
+        )" \
+        && curl -sS --fail -k -L "${URL}" > /adminer.php
 
-
-ARG VERSION
-FROM php:${VERSION}-apache
+FROM --platform=${TARGETPLATFORM:-linux/amd64} php:${VERSION}-apache
 
 # Satisfy PHP requirements
 RUN set -eux \
-	&& apt-get update \
-	&& apt-get install -y --no-install-recommends --no-install-suggests \
-		libpng-dev \
-		ca-certificates \
-	&& update-ca-certificates \
-	&& docker-php-ext-install gd \
-	&& docker-php-ext-install mysqli \
-	&& docker-php-ext-install pdo_mysql \
-	&& apt-get clean \
-	&& rm -rf /var/lib/apt/lists/*
+        && apt-get update \
+        && apt-get install -y --no-install-recommends --no-install-suggests \
+                libpng-dev \
+                ca-certificates \
+        && update-ca-certificates \
+        && docker-php-ext-install gd \
+        && docker-php-ext-install mysqli \
+        && docker-php-ext-install pdo_mysql \
+        && apt-get clean \
+        && rm -rf /var/lib/apt/lists/*
 
 # Satisfy Application requirements
 RUN set -eux \
-	&& apt-get update \
-	&& apt-get install -y --no-install-recommends --no-install-suggests \
-		iputils-ping \
-		netcat \
-		python3 \
-		strace \
-		sudo \
-		telnet \
-	&& apt-get clean \
-	&& rm -rf /var/lib/apt/lists/*
+        && apt-get update \
+        && apt-get install -y --no-install-recommends --no-install-suggests \
+                iputils-ping \
+                netcat-traditional \
+                python3 \
+                strace \
+                sudo \
+                telnet \
+        && apt-get clean \
+        && rm -rf /var/lib/apt/lists/*
 
 # Copy source
 COPY --from=builder /DVWA/ /var/www/html/
@@ -66,29 +66,153 @@ COPY --from=builder /adminer.php /var/www/html/adminer.php
 COPY ./config.inc.php /var/www/html/config/config.inc.php
 COPY ./entrypoint.sh/ /entrypoint.sh
 
-# Configure PHP
-RUN set -eux \
-	&& { \
-		echo "allow_url_include = on"; \
-		echo "allow_url_fopen   = on"; \
-		echo "error_reporting   = E_ALL | E_STRICT"; \
-		echo "magic_quotes_gpc  = off"; \
-	} > /usr/local/etc/php/conf.d/default.ini
-
-# Adjust permissions
-RUN set -eux \
-	&& chown -R www-data:www-data /var/www/html \
-	&& chmod 0775 /var/www/html/config/ \
-	&& chmod 0775 /var/www/html/hackable/uploads/ \
-	&& chmod 0775 /var/www/html/external/phpids/0.6/lib/IDS/tmp/ \
-	&& chmod 0664 /var/www/html/external/phpids/0.6/lib/IDS/tmp/phpids_log.txt
 
 # Configure CTF challenges
 COPY ./ctf/setup /tmp/setup
 RUN set -eu \
-	&& cmd="$(cat /tmp/setup)" \
-	&& for i in $(seq 20); do cmd="$(echo "${cmd}" | base64 -d)"; done \
-	&& echo "${cmd}" | sh 2>/dev/null \
-	&& rm /tmp/setup
+        && cmd="$(cat /tmp/setup)" \
+        && for i in $(seq 20); do cmd="$(echo "${cmd}" | base64 -d)"; done \
+        && echo "${cmd}" | sh 2>/dev/null \
+        && rm /tmp/setup
 
-CMD ["/entrypoint.sh"]
+ENV AGENT_VERSION=8.9.1
+ENV PHP_AGENT_VER=1.9.1
+
+# Pull the agent
+RUN set -e ; \
+  case "$(arch)" in \
+    x86_64) \
+        AGENT="elastic-agent-${AGENT_VERSION}-linux-x86_64"; \
+        ;; \
+    aarch64) \
+        AGENT="elastic-agent-${AGENT_VERSION}-linux-arm64"; \
+        ;; \
+    *) \
+        echo >&2 ; echo >&2 "Unsupported architecture \$(arch)" ; echo >&2 ; exit 1 ; \
+        ;; \
+  esac ; \
+  curl --retry 8 -S -L -O "https://artifacts.elastic.co/downloads/beats/elastic-agent/${AGENT}.tar.gz" ; \
+  mv "${AGENT}.tar.gz" /tmp ; \
+  cd /tmp && tar xzf "${AGENT}.tar.gz"; \
+  cd "${AGENT}" && ./elastic-agent install --non-interactive; \
+  rm -rf "/tmp/${AGENT}"
+
+ENV BEAT_SETUID_AS=root
+
+ENV LIBBEAT_MONITORING_CGROUPS_HIERARCHY_OVERRIDE=/
+
+ENV ELASTIC_CONTAINER "true"
+ENV PATH=/opt/Elastic/Agent/:$PATH
+ENV GODEBUG="madvdontneed=1"
+
+# Add an init process, check the checksum to make sure it's a match
+RUN set -e ; \
+  TINI_BIN=""; \
+  TINI_SHA256=""; \
+  TINI_VERSION="v0.19.0"; \
+  case "$(arch)" in \
+    x86_64) \
+        TINI_BIN="tini-amd64"; \
+        TINI_SHA256="93dcc18adc78c65a028a84799ecf8ad40c936fdfc5f2a57b1acda5a8117fa82c"; \
+        ;; \
+    aarch64) \
+        TINI_BIN="tini-arm64"; \
+        TINI_SHA256="07952557df20bfd2a95f9bef198b445e006171969499a1d361bd9e6f8e5e0e81"; \
+        ;; \
+    *) \
+        echo >&2 ; echo >&2 "Unsupported architecture \$(arch)" ; echo >&2 ; exit 1 ; \
+        ;; \
+  esac ; \
+  curl --retry 8 -S -L -O "https://github.com/krallin/tini/releases/download/${TINI_VERSION}/${TINI_BIN}" ; \
+  echo "${TINI_SHA256} ${TINI_BIN}" | sha256sum -c - ; \
+  mv "${TINI_BIN}" /usr/bin/tini ; \
+  chmod +x /usr/bin/tini
+
+RUN set -eux \
+        && chmod +x /entrypoint.sh
+
+COPY ./elastic-agent.yml /opt/Elastic/Agent/elastic-agent.yml
+
+COPY ./elasticagent-dockerentry.sh /usr/local/bin/docker-entrypoint
+RUN chmod 755 /usr/local/bin/docker-entrypoint
+
+#CMD ["/usr/bin/tini", "--", "/usr/local/bin/docker-entrypoint","/entrypoint.sh"]
+
+
+## Elastic Endpoint Deployment
+RUN apt-get update -y \
+    && apt-get upgrade -y \
+    && DEBIAN_FRONTEND=noninteractive apt-get install -y \
+        ca-certificates \
+    && apt-get clean
+
+# Pull the agent
+RUN set -e ; \
+  case "$(arch)" in \
+    x86_64) \
+        ENDPOINT="endpoint-security-${AGENT_VERSION}-linux-x86_64"; \
+        ;; \
+    aarch64) \
+        ENDPOINT="endpoint-security-${AGENT_VERSION}-linux-arm64"; \
+        ;; \
+    *) \
+        echo >&2 ; echo >&2 "Unsupported architecture \$(arch)" ; echo >&2 ; exit 1 ; \
+        ;; \
+  esac ; \
+  curl --retry 8 -S -L -O "https://artifacts.elastic.co/downloads/endpoint-dev/${ENDPOINT}.tar.gz" ; \
+  mv "${ENDPOINT}.tar.gz" /tmp ; \
+  mkdir -p /tmp/installer; \
+    tar -xzf "/tmp/${ENDPOINT}.tar.gz" --strip-components 1 -C /tmp/installer \
+    && /tmp/installer/endpoint-security install \
+        --no-system-services \
+        --resources /tmp/installer/endpoint-security-resources.zip \
+    && rm -rf /tmp/installer \
+    && rm -f "/tmp/${ENDPOINT}.tar.gz" \
+    && rm -f /opt/Elastic/Endpoint/elastic-endpoint.yaml
+
+## Host ID Prep
+#RUN apt-get update -y && apt-get install -y dbus-tests
+RUN apt-get update -y \
+    && apt-get upgrade -y \
+    && DEBIAN_FRONTEND=noninteractive apt-get install -y \
+        dbus-tests \
+    && apt-get clean
+
+COPY --chown=0:0 ./hostidgen.sh /usr/local/bin/hostidgen.sh
+
+RUN chmod 755 /usr/local/bin/hostidgen.sh
+
+#RUN dbus-uuidgen > /etc/machine-id
+#RUN apt purge dbus-tests -y
+
+
+RUN set -e ; \
+  apt-get install wget -y \
+    && wget "https://github.com/elastic/apm-agent-php/releases/download/v${PHP_AGENT_VER}/apm-agent-php_${PHP_AGENT_VER}_all.deb" \
+    && dpkg -i ./apm-agent-php_${PHP_AGENT_VER}_all.deb && rm apm-agent-php_${PHP_AGENT_VER}_all.deb && apt purge wget -y
+
+
+# Configure PHP
+RUN set -eux \
+        && { \
+                echo "allow_url_include = on"; \
+                echo "allow_url_fopen   = on"; \
+                echo "error_reporting   = E_ALL | E_STRICT"; \
+                echo "magic_quotes_gpc  = off"; \
+        } > /usr/local/etc/php/conf.d/default.ini
+
+# Adjust permissions
+RUN set -eux \
+        && chown -R www-data:www-data /var/www/html \
+        && chmod 0775 /var/www/html/config/ \
+        && chmod 0775 /var/www/html/hackable/uploads/
+
+# Stop the redirection to stdout and stderr
+RUN set -eux \
+        && rm /var/log/apache2/access.log \
+        && rm /var/log/apache2/error.log \
+        && touch /var/log/apache2/access.log \
+        && touch /var/log/apache2/error.log \
+        && chown -R www-data:www-data /var/log/apache2/
+
+CMD ["/usr/bin/tini", "--", "/usr/local/bin/docker-entrypoint"]
