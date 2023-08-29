@@ -4,10 +4,18 @@ version: '2.4'
 services:
 
   dvwa_web:
-    image: cytopia/dvwa:php-${PHP_VERSION:-8.1}
+    #Built with as base cytopia/dvwa
+    image: adrianaues/dvwa-esagent:apm
     restart: unless-stopped
+    hostname: dvwa_app
+    volumes:
+      - ea_state:/usr/share/elastic-agent/state/:z
+      - /sys/kernel/debug:/sys/kernel/debug:ro,z
+      - /sys/fs/bpf:/sys/fs/bpf:ro,z
     ports:
-      - "${LISTEN_PORT:-8000}:80"
+      - "${LISTEN_PORT:-3000}:80"
+    cap_add:
+      - ALL
     networks:
       - dvwa-net
     environment:
@@ -21,9 +29,19 @@ services:
       - MYSQL_DATABASE=dvwa
       - MYSQL_USERNAME=dvwa
       - MYSQL_PASSWORD=p@ssw0rd
+      - FLEET_ENROLL=1
+      - FLEET_ENROLLMENT_TOKEN=
+      - FLEET_URL=
+      - ELASTIC_APM_SECRET_TOKEN=
+      - ELASTIC_APM_SERVER_URL=
+      - ELASTIC_ENDPOINT_K8S=true
+      - ELASTIC_APM_SERVICE_NAME=DVWA
+      # Don't capture Error due to PHP Agent Bug
+      # https://github.com/elastic/apm-agent-php/issues/1022
+      - ELASTIC_APM_CAPTURE_ERRORS=false
 
   dvwa_db:
-    image: mariadb:10.1
+    image: mariadb:10.7
     hostname: dvwa_db
     volumes:
       - dvwa_db_data:/var/lib/mysql
@@ -38,7 +56,8 @@ services:
 
 networks:
   dvwa-net:
-    driver: bridge
+            #driver: bridge
 
 volumes:
   dvwa_db_data:
+  ea_state:
