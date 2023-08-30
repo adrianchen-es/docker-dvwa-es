@@ -10,6 +10,8 @@ services:
     hostname: dvwa_app
     volumes:
       - ea_state:/usr/share/elastic-agent/state/:z
+      ## comment both /sys lines for non linux kernel
+      ## E.g. Mac
       - /sys/kernel/debug:/sys/kernel/debug:ro,z
       - /sys/fs/bpf:/sys/fs/bpf:ro,z
     ports:
