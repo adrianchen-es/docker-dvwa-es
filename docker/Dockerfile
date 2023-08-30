@@ -1,7 +1,5 @@
 ARG VERSION
-ARG TARGETARCH
-ARG TARGETPLATFORM
-FROM --platform=${TARGETPLATFORM:-linux/amd64} php:${VERSION}-apache as builder
+FROM php:${VERSION}-apache as builder
 
 # Install requirements
 RUN set -eux \
@@ -32,7 +30,7 @@ RUN set -eux \
         )" \
         && curl -sS --fail -k -L "${URL}" > /adminer.php
 
-FROM --platform=${TARGETPLATFORM:-linux/amd64} php:${VERSION}-apache
+FROM php:${VERSION}-apache
 
 # Satisfy PHP requirements
 RUN set -eux \
