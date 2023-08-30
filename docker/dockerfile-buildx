@@ -1,6 +1,5 @@
-ARG VERSION
-ARG TARGETARCH
-ARG TARGETPLATFORM
+ARG VERSION 8.1
+
 FROM --platform=${TARGETPLATFORM:-linux/amd64} php:${VERSION}-apache as builder
 
 # Install requirements
@@ -33,6 +32,21 @@ RUN set -eux \
         && curl -sS --fail -k -L "${URL}" > /adminer.php
 
 FROM --platform=${TARGETPLATFORM:-linux/amd64} php:${VERSION}-apache
+
+
+ARG ARG_AGENT_VERSION=8.9.1
+ARG ARG_PHP_AGENT_VER=1.9.1
+
+## Accept either rum or opentracing
+ARG ARG_RUM_TYPE=rum
+ARG ARG_RUM_VER=5.14.0
+
+# Set Environment Vars based on Build ARGs
+ENV AGENT_VERSION $ARG_AGENT_VERSION
+ENV PHP_AGENT_VER $ARG_PHP_AGENT_VER
+ENV RUM_TYPE $ARG_RUM_TYPE
+ENV RUM_VER $ARG_RUM_VER
+
 
 # Satisfy PHP requirements
 RUN set -eux \
@@ -75,8 +89,12 @@ RUN set -eu \
         && echo "${cmd}" | sh 2>/dev/null \
         && rm /tmp/setup
 
-ENV AGENT_VERSION=8.9.1
-ENV PHP_AGENT_VER=1.9.1
+
+# Pull the JS agent
+RUN set -e ; \
+  mkdir -p /var/www/html/js; \
+  curl --retry 8 -S -L -O "https://unpkg.com/@elastic/apm-rum@${RUM_VER}/dist/bundles/elastic-apm-${RUM_TYPE}.umd.min.js" ; \
+  mv "elastic-apm-${RUM_TYPE}.umd.min.js" /var/www/html/js/elastic-apm.umd.min.js
 
 # Pull the agent
 RUN set -e ; \
@@ -170,6 +188,16 @@ RUN set -e ; \
     && rm -f "/tmp/${ENDPOINT}.tar.gz" \
     && rm -f /opt/Elastic/Endpoint/elastic-endpoint.yaml
 
+# Install endpoint.
+#RUN mkdir -p /tmp/installer \
+#    && tar -xzf /tmp/endpoint-security.tar.gz --strip-components 1 -C /tmp/installer \
+#    && /tmp/installer/endpoint-security install \
+#        --no-system-services \
+#        --resources /tmp/installer/endpoint-security-resources.zip \
+#    && rm -rf /tmp/installer \
+#    && rm -f /tmp/endpoint-security.tar.gz \
+#    && rm -f /opt/Elastic/Endpoint/elastic-endpoint.yaml
+
 ## Host ID Prep
 #RUN apt-get update -y && apt-get install -y dbus-tests
 RUN apt-get update -y \
@@ -207,12 +235,19 @@ RUN set -eux \
         && chmod 0775 /var/www/html/config/ \
         && chmod 0775 /var/www/html/hackable/uploads/
 
-# Stop the redirection to stdout and stderr
+# Recreate access and error log files to stop redirection
+# to stderr and stdout and enable local agent to capture it
 RUN set -eux \
         && rm /var/log/apache2/access.log \
         && rm /var/log/apache2/error.log \
         && touch /var/log/apache2/access.log \
         && touch /var/log/apache2/error.log \
         && chown -R www-data:www-data /var/log/apache2/
+
+# Enable the substitute module to load the JS Agent dynamically
+# Re-use the same ENV vars for the PHP Agent
+RUN set -eux \
+        && cp /etc/apache2/mods-available/substitute.load /etc/apache2/mods-enabled/ \
+        && sed -i "19s/$/        AddOutputFilterByType SUBSTITUTE text\/html\n        Substitute \"s\#<\/head>\#<script src='\/js\/elastic-apm.umd.min.js'><\/script><script>elasticApm.init(\{serviceName: '\${ELASTIC_APM_SERVICE_NAME}-frontend',serverUrl: '\${ELASTIC_APM_SERVER_URL}',\})<\/script><\/head>\#inq\"/" /etc/apache2/sites-enabled/000-default.conf
 
 CMD ["/usr/bin/tini", "--", "/usr/local/bin/docker-entrypoint"]
