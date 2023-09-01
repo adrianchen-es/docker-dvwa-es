@@ -358,6 +358,8 @@ function dvwaHtmlEcho( $pPage ) {
 	Header( 'Expires: Tue, 23 Jun 2009 12:00:00 GMT' );    // Date in the past
 	Header( 'Access-Control-Request-Headers: traceparent, tracestate' );    // Accept-Control
 
+	$pAPMBlock=esAPM();
+
 	echo "<!DOCTYPE html>
 
 <html lang=\"en-GB\">
@@ -373,7 +375,7 @@ function dvwaHtmlEcho( $pPage ) {
 
 		<script type=\"text/javascript\" src=\"" . DVWA_WEB_PAGE_TO_ROOT . "dvwa/js/dvwaPage.js\"></script>
 
-	." (esAPM()) ".
+	${pAPMBlock}
 
 	</head>
 
@@ -429,6 +431,9 @@ function dvwaHelpHtmlEcho( $pPage ) {
 	Header( 'Cache-Control: no-cache, must-revalidate');   // HTTP/1.1
 	Header( 'Content-Type: text/html;charset=utf-8' );     // TODO- proper XHTML headers...
 	Header( 'Expires: Tue, 23 Jun 2009 12:00:00 GMT' );    // Date in the past
+	Header( 'Access-Control-Request-Headers: traceparent, tracestate' );    // Accept-Control
+
+	$pAPMBlock=esAPM();
 
 	echo "<!DOCTYPE html>
 
@@ -443,8 +448,8 @@ function dvwaHelpHtmlEcho( $pPage ) {
 		<link rel=\"stylesheet\" type=\"text/css\" href=\"" . DVWA_WEB_PAGE_TO_ROOT . "dvwa/css/help.css\" />
 
 		<link rel=\"icon\" type=\"\image/ico\" href=\"" . DVWA_WEB_PAGE_TO_ROOT . "favicon.ico\" />
-
-	." (esAPM()) ".
+	
+		${pAPMBlock}
 
 	</head>
 
@@ -467,6 +472,9 @@ function dvwaSourceHtmlEcho( $pPage ) {
 	Header( 'Cache-Control: no-cache, must-revalidate');   // HTTP/1.1
 	Header( 'Content-Type: text/html;charset=utf-8' );     // TODO- proper XHTML headers...
 	Header( 'Expires: Tue, 23 Jun 2009 12:00:00 GMT' );    // Date in the past
+	Header( 'Access-Control-Request-Headers: traceparent, tracestate' );    // Accept-Control
+
+	$pAPMBlock=esAPM();
 
 	echo "<!DOCTYPE html>
 
@@ -482,7 +490,7 @@ function dvwaSourceHtmlEcho( $pPage ) {
 
 		<link rel=\"icon\" type=\"\image/ico\" href=\"" . DVWA_WEB_PAGE_TO_ROOT . "favicon.ico\" />
 
-	." (esAPM()) ".
+		${pAPMBlock}
 
 	</head>
 
