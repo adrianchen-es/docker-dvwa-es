@@ -229,14 +229,17 @@ RUN set -eux \
                 echo "magic_quotes_gpc  = off"; \
         } > /usr/local/etc/php/conf.d/default.ini
 
+COPY ./dvwaPage.inc.php /var/www/html/dvwa/includes/
+
+COPY ./login.php /var/www/html/
+
 # Adjust permissions
 RUN set -eux \
         && chown -R www-data:www-data /var/www/html \
         && chmod 0775 /var/www/html/config/ \
         && chmod 0775 /var/www/html/hackable/uploads/
 
-# Recreate access and error log files to stop redirection
-# to stderr and stdout and enable local agent to capture it
+
 RUN set -eux \
         && rm /var/log/apache2/access.log \
         && rm /var/log/apache2/error.log \
@@ -244,10 +247,9 @@ RUN set -eux \
         && touch /var/log/apache2/error.log \
         && chown -R www-data:www-data /var/log/apache2/
 
-# Enable the substitute module to load the JS Agent dynamically
-# Re-use the same ENV vars for the PHP Agent
-RUN set -eux \
-        && cp /etc/apache2/mods-available/substitute.load /etc/apache2/mods-enabled/ \
-        && sed -i "19s/$/        AddOutputFilterByType SUBSTITUTE text\/html\n        Substitute \"s\#<\/head>\#<script src='\/js\/elastic-apm.umd.min.js'><\/script><script>elasticApm.init(\{serviceName: '\${ELASTIC_APM_SERVICE_NAME}-frontend',serverUrl: '\${ELASTIC_APM_SERVER_URL}',\})<\/script><\/head>\#inq\"/" /etc/apache2/sites-enabled/000-default.conf
+
+#RUN set -eux \
+#        && cp /etc/apache2/mods-available/substitute.load /etc/apache2/mods-enabled/ \
+#        && sed -i "19s/$/        AddOutputFilterByType SUBSTITUTE text\/html\n        Substitute \"s\#<head>\#<head><script src='\/js\/elastic-apm.umd.min.js'><\/script><script>elasticApm.init(\{serviceName: '\${ELASTIC_APM_SERVICE_NAME}-frontend',serverUrl: '\${ELASTIC_APM_SERVER_URL}',distributedTracingOrigins: ['*'],propagateTracestate: true,breakdownMetrics: true,\})<\/script>\#inq\"/" /etc/apache2/sites-enabled/000-default.conf
 
 CMD ["/usr/bin/tini", "--", "/usr/local/bin/docker-entrypoint"]
