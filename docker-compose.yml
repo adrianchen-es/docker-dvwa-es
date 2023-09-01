@@ -4,7 +4,7 @@ version: '2.4'
 services:
 
   dvwa_web:
-    #Built with as base cytopia/dvwa
+    #Built using cytopia/dvwa as base
     image: adrianaues/dvwa-esagent:apm-distributed
     restart: unless-stopped
     hostname: dvwa_app
