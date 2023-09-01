@@ -336,21 +336,24 @@ function dvwaHtmlEcho( $pPage ) {
 			serverUrl : '{$elasticApmJsServerUrl}',
 			breakdownMetrics:true,
 		";
-	}
-	if ($isElasticApmEnabled) {
-
-
-		$elasticApmCurrentTransaction=Elastic\Apm\ElasticApm::getCurrentTransaction();
-		if ($elasticApmCurrentTransaction) {
-			$pApmBlock .= "
-			pageLoadTraceId : '{$elasticApmCurrentTransaction->getTraceId()}',
-			pageLoadSpanId : '{$elasticApmCurrentTransaction->ensureParentId()}',
-			";
+		$pApmBlock .= (dvwaIsLoggedIn() && dvwaSecurityLevelGet()) ? "context: { user: { username: '". ( dvwaCurrentUser() )."', }, securitylevel: ".( dvwaSecurityLevelGet() )." }" : "";
+		if (dvwaIsLoggedIn()) {
+			$pApmBlock .= "context: { user: { username: '". ( dvwaCurrentUser() )."', email: '' } }";
 		}
-	}
+		if ($isElasticApmEnabled) {
+	
+			$elasticApmCurrentTransaction=Elastic\Apm\ElasticApm::getCurrentTransaction();
+			if ($elasticApmCurrentTransaction) {
+				$pApmBlock .= "
+				pageLoadTraceId : '{$elasticApmCurrentTransaction->getTraceId()}',
+				pageLoadSpanId : '{$elasticApmCurrentTransaction->ensureParentId()}',
+				";
+			}
+		}
 	
 		$pApmBlock .= "})
  			</script>";
+	}
 
 	echo "<!DOCTYPE html>
 
