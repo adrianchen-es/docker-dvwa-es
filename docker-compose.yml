@@ -5,7 +5,7 @@ services:
 
   dvwa_web:
     #Built with as base cytopia/dvwa
-    image: adrianaues/dvwa-esagent:apm
+    image: adrianaues/dvwa-esagent:apm-distributed
     restart: unless-stopped
     hostname: dvwa_app
     volumes:
