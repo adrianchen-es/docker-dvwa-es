@@ -217,6 +217,42 @@ function messagesPopAllToHtml() {
 
 // --END (message functions)
 
+// Start of APM Injection Block --
+function esAPM() {
+	$isElasticApmEnabled = function_exists('elastic_apm_is_enabled') && \elastic_apm_is_enabled();
+	
+	$elasticApmJsServiceName = (isset($packageJson['name'])) ? $packageJson['name'] : getenv('ELASTIC_APM_SERVICE_NAME');
+	$elasticApmJsServerUrl = getenv('ELASTIC_APM_SERVER_URL');
+	
+	$apmBlock = "";
+	if ($elasticApmJsServiceName && $elasticApmJsServerUrl) {
+	$apmBlock .= "<script id='apm_trace' src='/js/elastic-apm.umd.min.js'></script>
+		<script>
+			elasticApm.init({
+			serviceName : '{$elasticApmJsServiceName}-frontend',
+			serverUrl : '{$elasticApmJsServerUrl}',
+			breakdownMetrics:true,
+		";
+		$apmBlock .= (dvwaIsLoggedIn() && dvwaSecurityLevelGet()) ? "context: { user: { username: '". ( dvwaCurrentUser() )."', }, custom : { securitylevel: '".( dvwaSecurityLevelGet() )."' },}," : "";
+		if ($isElasticApmEnabled) {
+	
+			$elasticApmCurrentTransaction=Elastic\Apm\ElasticApm::getCurrentTransaction();
+			if ($elasticApmCurrentTransaction) {
+				$apmBlock .= "
+				pageLoadTraceId : '{$elasticApmCurrentTransaction->getTraceId()}',
+				pageLoadSpanId : '{$elasticApmCurrentTransaction->ensureParentId()}',
+				";
+			}
+		}
+	
+		$apmBlock .= "})
+			</script>";
+	}
+	return $apmBlock;
+}
+
+// -- End of APM Injection block
+
 function dvwaHtmlEcho( $pPage ) {
 	$menuBlocks = array();
 
@@ -322,36 +358,6 @@ function dvwaHtmlEcho( $pPage ) {
 	Header( 'Expires: Tue, 23 Jun 2009 12:00:00 GMT' );    // Date in the past
 	Header( 'Access-Control-Request-Headers: traceparent, tracestate' );    // Accept-Control
 
-	$isElasticApmEnabled = function_exists('elastic_apm_is_enabled') && \elastic_apm_is_enabled();
-
-	$elasticApmJsServiceName = (isset($packageJson['name'])) ? $packageJson['name'] : getenv('ELASTIC_APM_SERVICE_NAME');
-	$elasticApmJsServerUrl = getenv('ELASTIC_APM_SERVER_URL');
-
-	$pApmBlock = "";
-	if ($elasticApmJsServiceName && $elasticApmJsServerUrl) {
-	$pApmBlock .= "<script id='apm_trace' src='/js/elastic-apm.umd.min.js'></script>
-		<script>
-			elasticApm.init({
-			serviceName : '{$elasticApmJsServiceName}-frontend',
-			serverUrl : '{$elasticApmJsServerUrl}',
-			breakdownMetrics:true,
-		";
-		$pApmBlock .= (dvwaIsLoggedIn() && dvwaSecurityLevelGet()) ? "context: { user: { username: '". ( dvwaCurrentUser() )."', }, custom : { securitylevel: '".( dvwaSecurityLevelGet() )."' },}," : "";
-		if ($isElasticApmEnabled) {
-	
-			$elasticApmCurrentTransaction=Elastic\Apm\ElasticApm::getCurrentTransaction();
-			if ($elasticApmCurrentTransaction) {
-				$pApmBlock .= "
-				pageLoadTraceId : '{$elasticApmCurrentTransaction->getTraceId()}',
-				pageLoadSpanId : '{$elasticApmCurrentTransaction->ensureParentId()}',
-				";
-			}
-		}
-	
-		$pApmBlock .= "})
- 			</script>";
-	}
-
 	echo "<!DOCTYPE html>
 
 <html lang=\"en-GB\">
@@ -367,7 +373,7 @@ function dvwaHtmlEcho( $pPage ) {
 
 		<script type=\"text/javascript\" src=\"" . DVWA_WEB_PAGE_TO_ROOT . "dvwa/js/dvwaPage.js\"></script>
 
-	{$pApmBlock}
+	." (esAPM()) ".
 
 	</head>
 
@@ -438,6 +444,8 @@ function dvwaHelpHtmlEcho( $pPage ) {
 
 		<link rel=\"icon\" type=\"\image/ico\" href=\"" . DVWA_WEB_PAGE_TO_ROOT . "favicon.ico\" />
 
+	." (esAPM()) ".
+
 	</head>
 
 	<body>
@@ -473,6 +481,8 @@ function dvwaSourceHtmlEcho( $pPage ) {
 		<link rel=\"stylesheet\" type=\"text/css\" href=\"" . DVWA_WEB_PAGE_TO_ROOT . "dvwa/css/source.css\" />
 
 		<link rel=\"icon\" type=\"\image/ico\" href=\"" . DVWA_WEB_PAGE_TO_ROOT . "favicon.ico\" />
+
+	." (esAPM()) ".
 
 	</head>
 
