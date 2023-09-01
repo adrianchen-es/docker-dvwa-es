@@ -336,10 +336,7 @@ function dvwaHtmlEcho( $pPage ) {
 			serverUrl : '{$elasticApmJsServerUrl}',
 			breakdownMetrics:true,
 		";
-		$pApmBlock .= (dvwaIsLoggedIn() && dvwaSecurityLevelGet()) ? "context: { user: { username: '". ( dvwaCurrentUser() )."', }, securitylevel: ".( dvwaSecurityLevelGet() )." }" : "";
-		if (dvwaIsLoggedIn()) {
-			$pApmBlock .= "context: { user: { username: '". ( dvwaCurrentUser() )."', email: '' } }";
-		}
+		$pApmBlock .= (dvwaIsLoggedIn() && dvwaSecurityLevelGet()) ? "context: { user: { username: '". ( dvwaCurrentUser() )."', }, securitylevel: ".( dvwaSecurityLevelGet() )." }," : "";
 		if ($isElasticApmEnabled) {
 	
 			$elasticApmCurrentTransaction=Elastic\Apm\ElasticApm::getCurrentTransaction();
