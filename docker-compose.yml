@@ -4,16 +4,16 @@ version: '2.4'
 services:
 
   dvwa_web:
-    #Built using cytopia/dvwa as base
-    image: adrianaues/dvwa-esagent:apm-distributed
+    image: adrianaues/dvwa-esagent:apm-dist-8.11.2
     restart: unless-stopped
     hostname: dvwa_app
     volumes:
       - ea_state:/usr/share/elastic-agent/state/:z
-      ## comment both /sys lines for non linux kernel
-      ## E.g. Mac
+      #- /boot:/boot:ro,z
       - /sys/kernel/debug:/sys/kernel/debug:ro,z
       - /sys/fs/bpf:/sys/fs/bpf:ro,z
+      - etc-passwd:/mnt/host/etc/passwd:ro,z
+      - etc-group:/mnt/host/etc/group:ro,z
     ports:
       - "${LISTEN_PORT:-3000}:80"
     cap_add:
@@ -31,17 +31,13 @@ services:
       - MYSQL_DATABASE=dvwa
       - MYSQL_USERNAME=dvwa
       - MYSQL_PASSWORD=p@ssw0rd
+      - FLEET_ENROLLMENT_TOKEN=MU9jc0xva0JaaVM0c2g2U0ptTG06MnJnbXRWMXZRREdvRWVNZ2tlQzJRUQ==
       - FLEET_ENROLL=1
+      - FLEET_URL=https://760a5895b4f84c1889f274689193f992.fleet.us-central1.gcp.cloud.es.io:443
       - ELASTIC_ENDPOINT_K8S=true
-      # Comment and Split into a .env to avoid unintended exposure of
-      # Tokens
-      - FLEET_ENROLLMENT_TOKEN=
-      - FLEET_URL=
-      - ELASTIC_APM_SECRET_TOKEN=
-      - ELASTIC_APM_SERVER_URL=
+      - ELASTIC_APM_SERVER_URL=https://sec-obs-prod.apm.us-central1.gcp.cloud.es.io
       - ELASTIC_APM_SERVICE_NAME=DVWA
-      # Don't capture Error due to PHP Agent Bug
-      # https://github.com/elastic/apm-agent-php/issues/1022
+      - ELASTIC_APM_SECRET_TOKEN=X3b3BmQ1K0nXRBZxXv
       - ELASTIC_APM_CAPTURE_ERRORS=false
 
   dvwa_db:
@@ -65,3 +61,8 @@ networks:
 volumes:
   dvwa_db_data:
   ea_state:
+  boot:
+  sys-kernel-debug:
+  bpf:
+  etc-passwd:
+  etc-group:
