@@ -31,13 +31,13 @@ services:
       - MYSQL_DATABASE=dvwa
       - MYSQL_USERNAME=dvwa
       - MYSQL_PASSWORD=p@ssw0rd
-      - FLEET_ENROLLMENT_TOKEN=MU9jc0xva0JaaVM0c2g2U0ptTG06MnJnbXRWMXZRREdvRWVNZ2tlQzJRUQ==
+      - FLEET_ENROLLMENT_TOKEN=
       - FLEET_ENROLL=1
-      - FLEET_URL=https://760a5895b4f84c1889f274689193f992.fleet.us-central1.gcp.cloud.es.io:443
+      - FLEET_URL=https://<>
       - ELASTIC_ENDPOINT_K8S=true
       - ELASTIC_APM_SERVER_URL=https://sec-obs-prod.apm.us-central1.gcp.cloud.es.io
       - ELASTIC_APM_SERVICE_NAME=DVWA
-      - ELASTIC_APM_SECRET_TOKEN=X3b3BmQ1K0nXRBZxXv
+      - ELASTIC_APM_SECRET_TOKEN=
       - ELASTIC_APM_CAPTURE_ERRORS=false
 
   dvwa_db:
