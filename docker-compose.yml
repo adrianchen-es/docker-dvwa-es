@@ -29,29 +29,30 @@ services:
       - PHPIDS_ENABLED=${PHPIDS_ENABLED:-0}
       - PHPIDS_VERBOSE=${PHPIDS_VERBOSE:-0}
       - PHP_DISPLAY_ERRORS=${PHP_DISPLAY_ERRORS:-0}
-      - MYSQL_HOSTNAME=dvwa_db
-      - MYSQL_DATABASE=dvwa
-      - MYSQL_USERNAME=dvwa
-      - MYSQL_PASSWORD=p@ssw0rd
-      - FLEET_ENROLLMENT_TOKEN=
-      - FLEET_ENROLL=1
-      - FLEET_URL=https://<>
+      - MYSQL_HOSTNAME=${MYSQL_HOSTNAME:-dvwa_db}
+      - MYSQL_DATABASE=${MYSQL_DATABASE:-dvwa}
+      - MYSQL_USERNAME=${MYSQL_USER:-dvwa}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD:-}
+      - FLEET_ENROLLMENT_TOKEN=${FLEET_ENROLLMENT_TOKEN:-}
+      - FLEET_ENROLL=${FLEET_ENROLL:-01}
+      - FLEET_URL=${FLEET_URL:-https://localhost:8220}
       - ELASTIC_ENDPOINT_K8S=true
-      - ELASTIC_APM_SERVER_URL=https://sec-obs-prod.apm.us-central1.gcp.cloud.es.io
-      - ELASTIC_APM_SERVICE_NAME=DVWA
-      - ELASTIC_APM_SECRET_TOKEN=
-      - ELASTIC_APM_CAPTURE_ERRORS=false
+      - ELASTIC_APM_ENABLED={ELASTIC_APM_ENABLED:-false}
+      - ELASTIC_APM_SERVER_URL=${ELASTIC_APM_SERVER_URL:-https://localhost:8220}
+      - ELASTIC_APM_SERVICE_NAME=${ELASTIC_APM_SERVICE_NAME:-DVWA}
+      - ELASTIC_APM_SECRET_TOKEN=${ELASTIC_APM_SECRET_TOKEN:-}
+      - ELASTIC_APM_CAPTURE_ERRORS=${ELASTIC_APM_CAPTURE_ERRORS:-true}
 
   dvwa_db:
     image: mariadb:10.7
-    hostname: dvwa_db
+    hostname: ${MYSQL_HOSTNAME:-dvwa_db}
     volumes:
       - dvwa_db_data:/var/lib/mysql
     environment:
-      MYSQL_ROOT_PASSWORD: rootpass
-      MYSQL_DATABASE: dvwa
-      MYSQL_USER: dvwa
-      MYSQL_PASSWORD: p@ssw0rd
+      - MYSQL_PASSWORD=${MYSQL_ROOT_PASSWORD:-}
+      - MYSQL_DATABASE=${MYSQL_DATABASE:-dvwa}
+      - MYSQL_USER=${MYSQL_USER:-dvwa}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD:-}
     restart: unless-stopped
     networks:
       - dvwa-net
@@ -63,8 +64,5 @@ networks:
 volumes:
   dvwa_db_data:
   ea_state:
-  boot:
-  sys-kernel-debug:
-  bpf:
   etc-passwd:
   etc-group:
