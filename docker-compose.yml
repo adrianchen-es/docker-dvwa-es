@@ -4,7 +4,7 @@ version: '2.4'
 services:
 
   dvwa_web:
-    image: adrianaues/dvwa-esagent:apm-dist-8.11.2
+    image: adrianaues/dvwa-esagent:apm-dist-${VERSION:-latest}
     restart: unless-stopped
     hostname: dvwa_app
     volumes:
