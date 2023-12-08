@@ -1,6 +1,6 @@
 ARG VERSION 8.1
 
-FROM --platform=${TARGETPLATFORM:-linux/amd64} php:${VERSION}-apache as builder
+FROM --platform=${BUILDPLATFORM} php:${VERSION}-apache as builder
 
 # Install requirements
 RUN set -eux \
@@ -34,8 +34,8 @@ RUN set -eux \
 FROM --platform=${TARGETPLATFORM:-linux/amd64} php:${VERSION}-apache
 
 
-ARG ARG_AGENT_VERSION=8.9.1
-ARG ARG_PHP_AGENT_VER=1.9.1
+ARG ARG_AGENT_VERSION=8.10.2
+ARG ARG_PHP_AGENT_VER=1.10.0
 
 ## Accept either rum or opentracing
 ARG ARG_RUM_TYPE=rum
